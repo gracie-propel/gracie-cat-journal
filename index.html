@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cat Activity Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .activity-form {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .activity-list {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        input, textarea, button, select {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .activity-item {
+            border-bottom: 1px solid #eee;
+            padding: 10px 0;
+            position: relative;
+        }
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+        .delete-btn {
+            position: absolute;
+            right: 0;
+            top: 10px;
+            width: auto;
+            padding: 5px 10px;
+            background-color: #ff4444;
+        }
+        .delete-btn:hover {
+            background-color: #cc0000;
+        }
+        .cat-filter {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .cat-filter button {
+            flex: 1;
+        }
+        .cat-filter button.active {
+            background-color: #2E7D32;
+        }
+        .cat-name {
+            font-weight: bold;
+            color: #2E7D32;
+        }
+    </style>
+</head>
+<body>
+    <h1>🐱 Cat Activity Tracker</h1>
+    
+    <div class="activity-form">
+        <h2>Log New Activity</h2>
+        <form id="activityForm">
+            <select id="cat" required>
+                <option value="">Select Cat</option>
+                <option value="Birdie">Birdie</option>
+                <option value="Maisie">Maisie</option>
+            </select>
+            <input type="text" id="activity" placeholder="What did they do?" required>
+            <input type="datetime-local" id="time" required>
+            <textarea id="notes" placeholder="Additional notes (optional)"></textarea>
+            <button type="submit">Log Activity</button>
+        </form>
+    </div>
+
+    <div class="activity-list">
+        <h2>Recent Activities</h2>
+        <div class="cat-filter">
+            <button onclick="filterActivities('all')" class="active">All Cats</button>
+            <button onclick="filterActivities('Birdie')">Birdie</button>
+            <button onclick="filterActivities('Maisie')">Maisie</button>
+        </div>
+        <div id="activities"></div>
+    </div>
+
+    <script>
+        let currentFilter = 'all';
+        
+        // Load activities from localStorage when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadActivities();
+        });
+
+        function loadActivities() {
+            const activities = JSON.parse(localStorage.getItem('catActivities') || '[]');
+            const activitiesContainer = document.getElementById('activities');
+            activitiesContainer.innerHTML = '';
+            
+            activities
+                .filter(activity => currentFilter === 'all' || activity.cat === currentFilter)
+                .forEach(activity => {
+                    addActivityToDOM(activity);
+                });
+        }
+
+        function saveActivities(activities) {
+            localStorage.setItem('catActivities', JSON.stringify(activities));
+        }
+
+        function addActivityToDOM(activity) {
+            const activityItem = document.createElement('div');
+            activityItem.className = 'activity-item';
+            activityItem.dataset.id = activity.id;
+            activityItem.innerHTML = `
+                <button class="delete-btn" onclick="deleteActivity('${activity.id}')">×</button>
+                <span class="cat-name">${activity.cat}</span><br>
+                <strong>${new Date(activity.time).toLocaleString()}</strong><br>
+                ${activity.activity}<br>
+                ${activity.notes ? `<em>${activity.notes}</em>` : ''}
+            `;
+            document.getElementById('activities').prepend(activityItem);
+        }
+
+        function deleteActivity(id) {
+            const activities = JSON.parse(localStorage.getItem('catActivities') || '[]');
+            const updatedActivities = activities.filter(activity => activity.id !== id);
+            saveActivities(updatedActivities);
+            loadActivities();
+        }
+
+        function filterActivities(cat) {
+            currentFilter = cat;
+            // Update button styles
+            document.querySelectorAll('.cat-filter button').forEach(button => {
+                button.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            loadActivities();
+        }
+
+        document.getElementById('activityForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const cat = document.getElementById('cat').value;
+            const activity = document.getElementById('activity').value;
+            const time = document.getElementById('time').value;
+            const notes = document.getElementById('notes').value;
+            
+            const newActivity = {
+                id: Date.now().toString(),
+                cat,
+                activity,
+                time,
+                notes
+            };
+            
+            // Get existing activities
+            const activities = JSON.parse(localStorage.getItem('catActivities') || '[]');
+            activities.push(newActivity);
+            
+            // Save to localStorage
+            saveActivities(activities);
+            
+            // Add to DOM if it matches current filter
+            if (currentFilter === 'all' || currentFilter === cat) {
+                addActivityToDOM(newActivity);
+            }
+            
+            // Clear form
+            document.getElementById('activityForm').reset();
+        });
+    </script>
+</body>
+</html> 
